@@ -28,6 +28,14 @@ Makefile*
 *.sln
 make
 
+# CMake
+/build*/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+CMakeUserPresets.json
+
 # Artifacts
 *.swp
 
