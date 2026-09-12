@@ -1,0 +1,14 @@
+.git
+.github
+build*/
+Output/
+lib/
+bin/
+Makefile*
+.depend*
+*.o
+*.a
+*.so
+*.log
+Doc/
+ChangeLog
