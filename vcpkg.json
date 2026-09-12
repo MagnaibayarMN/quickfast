@@ -1,0 +1,35 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "quickfast",
+  "version": "1.5.0",
+  "description": "An implementation of the FAST protocol for native C++",
+  "homepage": "https://github.com/objectcomputing/quickfast",
+  "license": "BSD-3-Clause",
+  "builtin-baseline": "32305df7d0b9a308e6ac454dd98ebfe550342c09",
+  "dependencies": [
+    "boost-algorithm",
+    "boost-asio",
+    "boost-bind",
+    "boost-date-time",
+    "boost-function",
+    "boost-integer",
+    "boost-lexical-cast",
+    "boost-utility",
+    "boost-smart-ptr",
+    "boost-system",
+    "boost-thread",
+    "xerces-c"
+  ],
+  "features": {
+    "tests": {
+      "description": "Build the QuickFAST unit tests",
+      "dependencies": [
+        "boost-filesystem",
+        "boost-test"
+      ]
+    },
+    "examples": {
+      "description": "Build the QuickFAST example programs"
+    }
+  }
+}
