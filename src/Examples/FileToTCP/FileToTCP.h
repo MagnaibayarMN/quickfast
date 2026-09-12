@@ -5,6 +5,7 @@
 #ifndef FILETOTCP_H
 #define FILETOTCP_H
 #include <Application/CommandArgParser.h>
+#include <Communication/AsioCompatibility.h>
 #include <boost/asio.hpp>
 #include <stdio.h>
 

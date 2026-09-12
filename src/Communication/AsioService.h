@@ -7,7 +7,7 @@
 #endif
 #ifndef ASIOSERVICE_H
 #define ASIOSERVICE_H
-#include "AsioService_fwd.h"
+#include "AsioCompatibility.h"
 #include <Common/QuickFAST_Export.h>
 #include <Common/Logger_fwd.h>
 #include <Common/AtomicCounter.h>
@@ -87,7 +87,7 @@ namespace QuickFAST
       /// should be called after joinThreads before calling run*, poll*, etc. again.
       void resetService()
       {
-        ioService_.reset();
+        restartService(ioService_);
         stopping_ = false;
       }
 
@@ -100,12 +100,26 @@ namespace QuickFAST
         return ioService_;
       }
 
+#if BOOST_VERSION >= 106600
+      /// @brief the executor of the underlying io_service
+      ///
+      /// Boost 1.66 replaced the io_service& constructors of the Asio I/O
+      /// objects with a template that asks its argument for an executor.  The
+      /// implicit cast above is no longer enough for an AsioService to be
+      /// passed where an io_service used to be accepted, so the question is
+      /// forwarded to the io_service being wrapped.
+      boost::asio::io_context::executor_type get_executor()
+      {
+        return ioService_.get_executor();
+      }
+#endif // BOOST_VERSION >= 106600
+
       ///@brief Post a completion handler for later processing (usually in a different thread)
       /// @param handler is the handler to be posted
       template<typename CompletionHandler>
       void post(CompletionHandler handler)
       {
-        ioService_.post(handler);
+        postHandler(ioService_, handler);
       }
 
       /// @brief Attempt to determine how many threads are available to ASIO

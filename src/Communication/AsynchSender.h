@@ -111,7 +111,7 @@ namespace QuickFAST
       /// needed for output-type service which may have nothing to write at the moment, unlike
       /// input-type services which should always have an outstanding read or an active handler
       /// callback.
-      boost::scoped_ptr<boost::asio::io_service::work> keepAlive_;
+      boost::scoped_ptr<WorkGuard> keepAlive_;
     };
   }
 }

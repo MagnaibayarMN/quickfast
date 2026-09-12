@@ -9,6 +9,7 @@
 #include <Communication/MulticastSender_fwd.h>
 #include <Communication/BufferRecycler.h>
 #include <stdio.h>
+#include <chrono>
 
 namespace QuickFAST{
   namespace Examples{
@@ -64,8 +65,16 @@ namespace QuickFAST{
       bool verbose_;
 
       Communication::AsioService ioService_;
-      boost::asio::strand strand_;
+      // boost::asio::strand became a template in Boost 1.66; the class this
+      // example uses is spelled io_service::strand in every release.
+      boost::asio::io_service::strand strand_;
+#if BOOST_VERSION >= 106600
+      // Asio's date_time based timers became opt-in, so the example uses the
+      // chrono based timer that is always available.
+      boost::asio::steady_timer timer_;
+#else
       boost::asio::deadline_timer timer_;
+#endif // BOOST_VERSION >= 106600
 
       Application::CommandArgParser commandArgParser_;
       FILE * dataFile_;

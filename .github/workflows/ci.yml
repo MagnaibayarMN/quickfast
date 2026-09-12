@@ -1,0 +1,106 @@
+# Copyright (c) 2009, Object Computing, Inc.
+# All rights reserved.
+# See the file license.txt for licensing information.
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux:
+    name: Linux (${{ matrix.compiler }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [ gcc, clang ]
+        include:
+          - compiler: gcc
+            cc: gcc
+            cxx: g++
+          - compiler: clang
+            cc: clang
+            cxx: clang++
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            ninja-build libboost-all-dev libxerces-c-dev
+      - name: Configure
+        run: cmake --preset default
+      - name: Build
+        run: cmake --build build
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+      - name: Install and build a consuming project
+        run: |
+          cmake --install build --prefix "$RUNNER_TEMP/quickfast"
+          cmake -S .github/consumer -B "$RUNNER_TEMP/consumer" -G Ninja \
+            -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/quickfast"
+          cmake --build "$RUNNER_TEMP/consumer"
+
+  macos:
+    name: macOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: brew install boost xerces-c ninja
+      - name: Configure
+        run: cmake --preset default
+      - name: Build
+        run: cmake --build build
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  windows:
+    name: Windows (MSVC)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        shell: pwsh
+        # vcpkg is already on the runner; the preset expects VCPKG_ROOT.
+        run: |
+          $env:VCPKG_ROOT = $env:VCPKG_INSTALLATION_ROOT
+          cmake --preset vcpkg
+      - name: Build
+        run: cmake --build build --config Release
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image
+        run: docker build -t quickfast .
+      - name: Run it
+        # InterpretApplication prints its usage and exits non-zero, so the
+        # smoke test looks for the usage text rather than the exit status.
+        run: docker run --rm quickfast -? 2>&1 | grep -q 'Template file'
+
+  mpc:
+    name: MPC project files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch MPC
+        run: git clone --depth 1 https://github.com/DOCGroup/MPC.git "$RUNNER_TEMP/MPC"
+      - name: Generate the makefiles
+        # The CMake build is an addition, not a replacement: the MPC project
+        # files must keep working.
+        run: |
+          export MPC_ROOT="$RUNNER_TEMP/MPC"
+          export QUICKFAST_ROOT="$GITHUB_WORKSPACE"
+          perl "$MPC_ROOT/mwc.pl" -type make QuickFAST.mwc
+          test -f Makefile
