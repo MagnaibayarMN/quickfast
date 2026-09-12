@@ -121,12 +121,19 @@ FileToTCP::run()
 
     for (size_t count = 0; count < sendCount_ || sendCount_ == 0; ++count)
     {
-      tcp::iostream stream;
       if(verbose_)
       {
         std::cout << "Listening" << std::endl;
       }
+#if BOOST_VERSION >= 106600
+      // Boost 1.66 made basic_socket a private base of the stream buffer, so
+      // the accepted socket is moved into the stream instead of accepted into
+      // the stream's buffer.
+      tcp::iostream stream(acceptor.accept());
+#else
+      tcp::iostream stream;
       acceptor.accept(*stream.rdbuf());
+#endif // BOOST_VERSION >= 106600
       if(verbose_)
       {
         std::cout << "Accepting" << std::endl;

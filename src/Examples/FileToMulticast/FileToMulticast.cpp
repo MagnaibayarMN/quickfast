@@ -263,8 +263,18 @@ FileToMulticast::run()
         << "Largest is " << bufferSize_ << " bytes." << std::endl;
     }
 
+#if BOOST_VERSION >= 106600
+    // strand::wrap and strand::dispatch were replaced in Boost 1.66.
+    boost::asio::dispatch(strand_, boost::bind(&FileToMulticast::sendBurst, this));
+#else
+#if BOOST_VERSION >= 106600
+    // strand::dispatch now takes the handler itself, already bound.
+    boost::asio::dispatch(strand_, boost::bind(&FileToMulticast::sendBurst, this));
+#else
     strand_.dispatch(
         strand_.wrap(boost::bind(&FileToMulticast::sendBurst, this)));
+#endif // BOOST_VERSION >= 106600
+#endif // BOOST_VERSION >= 106600
     StopWatch lapse;
     this->ioService_.run();
     unsigned long sendLapse = lapse.freeze();
@@ -302,9 +312,19 @@ FileToMulticast::sendBurst()
     // set the next timeout
     if(sendMicroseconds_ != 0)
     {
+#if BOOST_VERSION >= 106600
+      timer_.expires_after(std::chrono::microseconds(sendMicroseconds_));
+#else
       timer_.expires_from_now(boost::posix_time::microseconds(sendMicroseconds_));
+#endif // BOOST_VERSION >= 106600
       timer_.async_wait(
+#if BOOST_VERSION >= 106600
+        // strand::wrap was replaced by bind_executor in Boost 1.66.
+        boost::asio::bind_executor(
+          strand_, boost::bind(&FileToMulticast::sendBurst, this))
+#else
         strand_.wrap(boost::bind(&FileToMulticast::sendBurst, this))
+#endif // BOOST_VERSION >= 106600
         );
     }
 

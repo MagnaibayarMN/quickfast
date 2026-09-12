@@ -166,7 +166,7 @@ PCapToMulticast::applyArgs()
     }
     ok = ok && pcapReader_.open(dataFileName_.c_str());// for debugging dump to->, &std::cout);
 
-    multicastAddress_ = boost::asio::ip::address::from_string(sendAddress_);
+    multicastAddress_ = Communication::makeAddress(sendAddress_);
     endpoint_ = boost::asio::ip::udp::endpoint(multicastAddress_, portNumber_);
     socket_.open(endpoint_.protocol());
     std::cout << "Opening multicast group: " << endpoint_.address().to_string() << ':' << endpoint_.port() << std::endl;
@@ -189,8 +189,13 @@ PCapToMulticast::run()
       std::cout << " Configuring multicast: " << multicastAddress_ << '|' << sendAddress_ << ':' << portNumber_ << std::endl;
     }
 
+#if BOOST_VERSION >= 106600
+    // strand::dispatch now takes the handler itself, already bound.
+    boost::asio::dispatch(strand_, boost::bind(&PCapToMulticast::sendBurst, this));
+#else
     strand_.dispatch(
         strand_.wrap(boost::bind(&PCapToMulticast::sendBurst, this)));
+#endif // BOOST_VERSION >= 106600
     StopWatch lapse;
     this->ioService_.run();
     unsigned long sendLapse = lapse.freeze();
@@ -228,9 +233,19 @@ PCapToMulticast::sendBurst()
     // set the next timeout
     if(sendMicroseconds_ != 0)
     {
+#if BOOST_VERSION >= 106600
+      timer_.expires_after(std::chrono::microseconds(sendMicroseconds_));
+#else
       timer_.expires_from_now(boost::posix_time::microseconds(sendMicroseconds_));
+#endif // BOOST_VERSION >= 106600
       timer_.async_wait(
+#if BOOST_VERSION >= 106600
+        // strand::wrap was replaced by bind_executor in Boost 1.66.
+        boost::asio::bind_executor(
+          strand_, boost::bind(&PCapToMulticast::sendBurst, this))
+#else
         strand_.wrap(boost::bind(&PCapToMulticast::sendBurst, this))
+#endif // BOOST_VERSION >= 106600
         );
     }
 

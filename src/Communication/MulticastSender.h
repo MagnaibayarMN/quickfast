@@ -62,7 +62,7 @@ namespace QuickFAST
       ///@brief Prepare the sender to be used
       bool initializeSender()
       {
-        multicastAddress_ = boost::asio::ip::address::from_string(sendAddress_);
+        multicastAddress_ = makeAddress(sendAddress_);
         endpoint_ = boost::asio::ip::udp::endpoint(multicastAddress_, portNumber_);
         socket_.open(endpoint_.protocol());
         return true;

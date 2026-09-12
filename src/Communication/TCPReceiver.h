@@ -60,12 +60,26 @@ namespace QuickFAST
         bool ok = true;
         // generate a collection of possible endpoints for this host:port
         boost::asio::ip::tcp::resolver resolver(ioService_);
+#if BOOST_VERSION >= 106600
+        // resolver::query and the iterator-returning resolve() were replaced
+        // in Boost 1.66 and removed in Boost 1.87.
+        boost::asio::ip::tcp::resolver::results_type endpoints =
+          resolver.resolve(hostName_, port_);
+        boost::asio::ip::tcp::resolver::results_type::const_iterator iterator =
+          endpoints.begin();
+        boost::asio::ip::tcp::resolver::results_type::const_iterator endIterator =
+          endpoints.end();
+
+        // then iterate thru the collection until we find one that works.
+        boost::system::error_code error;
+#else
         boost::asio::ip::tcp::resolver::query query( hostName_, port_);
         boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
 
         // then iterate thru the collection until we find one that works.
         boost::system::error_code error;
         boost::asio::ip::tcp::resolver::iterator endIterator;
+#endif // BOOST_VERSION >= 106600
         bool connected = false;
         while(!connected && iterator != endIterator)
         {
